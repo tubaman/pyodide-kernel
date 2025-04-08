@@ -58,10 +58,87 @@ export class PyodideKernel extends BaseKernel implements IKernel {
         type: 'module',
       });
     } else {
-      return new Worker(new URL('./comlink.worker.js', import.meta.url), {
+      const worker = new Worker(new URL('./comlink.worker.js', import.meta.url), {
         type: 'module',
       });
+      this.initGM(worker);
+      return worker;
     }
+  }
+
+  protected initGM(worker: Worker): void {
+    worker.addEventListener('message', (ev: MessageEvent) => {
+      if (ev.data.type === 'GM_xmlHttpRequest request') {
+        ev.data.value.payload.onload = (response: any) => {
+          const responseMessage = {
+            type: 'GM_xmlHttpRequest response',
+            id: ev.data.id,
+            value: {
+              // https://www.tampermonkey.net/documentation.php?locale=en#api:GM_xmlhttpRequest
+              payload: {
+                finalUrl: response.finalUrl,
+                readyState: response.readyState,
+                status: response.status,
+                statusText: response.statusText,
+                responseHeaders: response.responseHeaders,
+                response: response.response,
+                //responseXML: response.responseXML,
+                responseText: response.responseText,
+              },
+            },
+          };
+          worker.postMessage(responseMessage);
+        };
+
+        ev.data.value.payload.onerror = (error: any) => {
+          const errorMessage = {
+            type: 'GM_xmlHttpRequest error',
+            id: ev.data.id,
+            value: {
+              payload: {
+                responseText: error.responseText,
+                response: error.response,
+                readyState: error.readyState,
+                responseHeaders: error.responseHeaders,
+                status: error.status,
+                statusText: error.statusText,
+                error: error.error,
+                DONE: error.DONE,
+                HEADERS_RECEIVED: error.HEADERS_RECEIVED,
+                LOADING: error.LOADING,
+                OPENED: error.OPENED,
+                UNSENT: error.UNSENT,
+                RESPONSE_TYPE_TEXT: error.RESPONSE_TYPE_TEXT,
+                RESPONSE_TYPE_ARRAYBUFFER: error.RESPONSE_TYPE_ARRAYBUFFER,
+                RESPONSE_TYPE_BLOB: error.RESPONSE_TYPE_BLOB,
+                RESPONSE_TYPE_DOCUMENT: error.RESPONSE_TYPE_DOCUMENT,
+                RESPONSE_TYPE_JSON: error.RESPONSE_TYPE_JSON,
+                RESPONSE_TYPE_STREAM: error.RESPONSE_TYPE_STREAM,
+              },
+            },
+          };
+          worker.postMessage(errorMessage);
+        };
+
+        try {
+          // @ts-expect-error convince TS that this actually exists
+          GM.xmlHttpRequest(ev.data.value.payload);
+        } catch (error) {
+          if (error instanceof ReferenceError) {
+            const errorMessage = {
+              type: 'GM_xmlHttpRequest error',
+              id: ev.data.id,
+              value: {
+                payload: `${error} - Make sure you have the Mashimi Tampermonkey Userscript installed`,
+              },
+            };
+            worker.postMessage(errorMessage);
+          } else {
+            throw error;
+          }
+        }
+      }
+    });
   }
 
   /**
