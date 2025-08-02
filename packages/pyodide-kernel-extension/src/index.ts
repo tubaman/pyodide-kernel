@@ -92,7 +92,7 @@ const kernel: JupyterFrontEndPlugin<void> = {
     kernelspecs.register({
       spec: {
         name: 'python',
-        display_name: 'Python (Pyodide)',
+        display_name: 'Python (Pyodide) Mashimi',
         language: 'python',
         argv: [],
         resources: {

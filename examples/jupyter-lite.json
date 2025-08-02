@@ -1,7 +1,7 @@
 {
   "jupyter-lite-schema-version": 0,
   "jupyter-config-data": {
-    "appName": "JupyterLite Pyodide Kernel",
+    "appName": "JupyterLite Pyodide Mashimi Kernel",
     "litePluginSettings": {
       "@jupyterlite/pyodide-kernel-extension:kernel": {
         "loadPyodideOptions": {
